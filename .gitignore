@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+
+# Environment variables and local settings
+.idea/
+
+# Contains a per-device enrollment token once the agent has registered
+agent/config.ini
+agent/ca.crt
