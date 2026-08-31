@@ -46,8 +46,16 @@ def script_args(action: str, target: str | None) -> list | None:
     return args or None
 
 
-def update_and_verify():
-    """Applies winget updates, then confirm the machine still works."""
+def verify_args(target: str | None) -> list | None:
+    """Argument for verify_workflow.ps1 - the endpoint's configured check,
+    set from the dashboard's Endpoint Detail page and carried down as the
+    task's target. None runs the script's own built-in placeholder."""
+    return ["-VerifyCommand", target] if target else None
+
+
+def update_and_verify(target: str | None = None):
+    """Apply winget updates, then confirm the machine still works.
+    """
     update_code, update_output = script_runner.run("update_winget.ps1", args=checkpoint_args())
     log = [f"[update_winget.ps1 exit={update_code}]", update_output]
 
@@ -55,7 +63,7 @@ def update_and_verify():
         log.append("Verification skipped: the update did not succeed.")
         return "FAILED", "\n".join(log)
 
-    verify_code, verify_output = script_runner.run("verify_workflow.ps1")
+    verify_code, verify_output = script_runner.run("verify_workflow.ps1", args=verify_args(target))
     log += [f"\n[verify_workflow.ps1 exit={verify_code}]", verify_output]
 
     if verify_code == 0:
@@ -63,8 +71,9 @@ def update_and_verify():
     return "SUCCESS_WORKFLOW_FAILED", "\n".join(log)
 
 
-def update_verify_heal():
-    """Updates, verifies, and rolls the machine back if verification fails."""
+def update_verify_heal(target: str | None = None):
+    """Update, verify, and roll the machine back if verification fails.
+    """
     update_code, update_output = script_runner.run("update_winget.ps1", args=checkpoint_args())
     log = [f"[update_winget.ps1 exit={update_code}]", update_output]
 
@@ -72,7 +81,7 @@ def update_verify_heal():
         log.append("Verification and rollback skipped: the update did not succeed.")
         return "FAILED", "\n".join(log)
 
-    verify_code, verify_output = script_runner.run("verify_workflow.ps1")
+    verify_code, verify_output = script_runner.run("verify_workflow.ps1", args=verify_args(target))
     log += [f"\n[verify_workflow.ps1 exit={verify_code}]", verify_output]
 
     if verify_code == 0:
@@ -91,17 +100,18 @@ def update_verify_heal():
 
 
 def execute(action: str, target: str | None = None):
-    """Returns (status, output) tuple after executing the action."""
+    """Runs one task and returns (status, output).
+    """
     print(
         f"\n[!] Executing task: {action}" + (f" (target: {target})" if target else ""),
         flush=True,
     )
 
     if action == "UPDATE_AND_VERIFY":
-        return update_and_verify()
+        return update_and_verify(target)
 
     if action == "UPDATE_VERIFY_HEAL":
-        return update_verify_heal()
+        return update_verify_heal(target)
 
     script_name = TASK_SCRIPTS.get(action)
     if not script_name:
