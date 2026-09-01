@@ -58,8 +58,23 @@ foreach ($candidate in $candidates) {
 if ($working.Count -gt 0) {
     Write-Output "Workflow verification PASSED (default check - no command configured). Working: $($working -join '; ')"
     if ($problems.Count -gt 0) { Write-Output "Also noted: $($problems -join '; ')" }
+
+if (-not $VerifyCommand) {
+    Write-Output "Workflow verification PASSED (nothing configured for this endpoint)."
     exit 0
 }
 
-Write-Output "Workflow verification FAILED (default check - no command configured). $($problems -join '; ')"
-exit 1
+$ErrorActionPreference = "Stop"
+$LASTEXITCODE = 0
+try {
+    $output = (Invoke-Expression $VerifyCommand 2>&1 | Out-String).Trim()
+    if ($LASTEXITCODE -ne 0) {
+        Write-Output "Workflow verification FAILED. '$VerifyCommand' exited $LASTEXITCODE.`n$output"
+        exit 1
+    }
+    Write-Output "Workflow verification PASSED. '$VerifyCommand' completed.`n$output"
+    exit 0
+} catch {
+    Write-Output "Workflow verification FAILED. '$VerifyCommand' raised: $($_.Exception.Message)"
+    exit 1
+}
