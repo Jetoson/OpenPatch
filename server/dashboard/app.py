@@ -26,8 +26,11 @@ def _default_server_url() -> str:
     """
     self_issued = os.path.join(paths.data_dir(), "certs", "ca.crt")
     scheme = "https" if os.path.exists(self_issued) else "http"
+    host = os.environ.get("OPENPATCH_HOST", "").strip() or "127.0.0.1"
+    if host == "0.0.0.0":
+        host = "127.0.0.1"
     port = os.environ.get("OPENPATCH_PORT", "8000")
-    return f"{scheme}://127.0.0.1:{port}"
+    return f"{scheme}://{host}:{port}"
 
 
 SERVER_URL = os.environ.get("OPENPATCH_SERVER_URL", "").strip() or _default_server_url()
