@@ -21,7 +21,16 @@ import paths  # noqa: E402
 env_file.load()
 
 
-SERVER_URL = os.environ.get("OPENPATCH_SERVER_URL", "").strip()
+def _default_server_url() -> str:
+    """Best guess for the API's address when OPENPATCH_SERVER_URL is not set.
+    """
+    self_issued = os.path.join(paths.data_dir(), "certs", "ca.crt")
+    scheme = "https" if os.path.exists(self_issued) else "http"
+    port = os.environ.get("OPENPATCH_PORT", "8000")
+    return f"{scheme}://127.0.0.1:{port}"
+
+
+SERVER_URL = os.environ.get("OPENPATCH_SERVER_URL", "").strip() or _default_server_url()
 API = f"{SERVER_URL}/api/v1"
 
 # One session so TLS verification is set once rather than at each call site.
