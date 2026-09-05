@@ -1,9 +1,56 @@
+# Python
 __pycache__/
 *.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Environment variables and local settings
-.idea/
+# Environment / virtualenv
+.env
+.env.*
+.venv/
+venv/
 
-# Contains a per-device enrollment token once the agent has registered
-agent/config.ini
+# PyInstaller build output
+/build/
+/dist/
+
+# Generated at runtime: the SQLite database plus every secret this server
+# generates on first run.
+server/data/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite3
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+.env
+.env.*
+
+# TLS material
+server/certs/
+*.key
+*.srl
+
+# A CA certificate baked into an agent build (see packaging/agent.spec).
 agent/ca.crt
+
+# Contains a real per-device enrollment token once the agent has registered
+agent/config.ini
+
+# The agent executable CI drops here before building the image
+packaging/agent-payload/*.exe
+
+# Logs
+*.log
+logs/
+
+# Editor
+.idea/
+.vscode/
+Thumbs.db
