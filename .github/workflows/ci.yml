@@ -121,7 +121,7 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
 
       - name: Take the agent executable from the Windows build
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: openpatch-executables-${{ github.sha }}
           path: ${{ runner.temp }}/executables
@@ -208,7 +208,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: openpatch-executables-${{ github.sha }}
           path: dist
