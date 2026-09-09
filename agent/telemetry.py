@@ -23,7 +23,7 @@ def wmi():
     """The WMI namespace, opened on first use."""
     global _wmi
     if _wmi is None:
-        __wmi = _win32com_client().GetObject("winmgmts:")
+        _wmi = _win32com_client().GetObject("winmgmts:")
     return _wmi
 
 
@@ -46,7 +46,7 @@ def is_elevated() -> bool:
         return False
 
 
-def collect(device_id: str) -> dic
+def collect(device_id: str) -> dict:
     psutil = _psutil()
     wmi_os = wmi().InstancesOf("Win32_OperatingSystem")[0]
     reboot_required, reboot_reasons = os_info.get_reboot_status()
