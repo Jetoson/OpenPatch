@@ -20,12 +20,15 @@ import script_runner
 ALLOW_UNELEVATED_ENV = "OPENPATCH_ALLOW_UNELEVATED"
 
 NOT_ELEVATED_MESSAGE = rf"""
-[X] The OpenPatch agent must run elevated. Install it as a SYSTEM scheduled task as outlined \
- in the Read the README.txt file. """
+[X] The OpenPatch agent must run elevated.
+    Install it as a SYSTEM scheduled task with:
+    {agent_paths.program_name()} install_agent_task.ps1
+"""
 
 NOT_ENROLLED_MESSAGE = f"""
 [X] This device is not enrolled with an OpenPatch server.
-    Enrol and start the agent again following the instructions outlined in the README.txt file.
+    Enrol and start the agent again with:
+    {agent_paths.program_name()} enroll --server <url>
 """
 
 

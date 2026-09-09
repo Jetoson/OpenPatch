@@ -1,10 +1,8 @@
 """Machine telemetry, and the privilege check that gates the whole agent."""
 
-import psutil
 import ctypes
+
 import os_info
-import win32api
-import win32com.client
 
 
 _wmi = None
@@ -14,6 +12,8 @@ def wmi():
     """The WMI namespace, opened on first use."""
     global _wmi
     if _wmi is None:
+        import win32com.client
+
         _wmi = win32com.client.GetObject("winmgmts:")
     return _wmi
 
@@ -26,6 +26,8 @@ def reset_wmi() -> None:
 
 
 def hostname() -> str:
+    import win32api
+
     return win32api.GetComputerName()
 
 
@@ -39,6 +41,8 @@ def is_elevated() -> bool:
 
 def collect(device_id: str) -> dict:
     """One heartbeat payload."""
+    import psutil
+
     wmi_os = wmi().InstancesOf("Win32_OperatingSystem")[0]
     reboot_required, reboot_reasons = os_info.get_reboot_status()
 

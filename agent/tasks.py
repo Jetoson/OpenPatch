@@ -115,7 +115,7 @@ def execute(action: str, target: str | None = None):
 
     script_name = TASK_SCRIPTS.get(action)
     if not script_name:
-        return "FAILED", "Unknown action"
+        return "FAILED", "Unimplemented action."
 
     returncode, output = script_runner.run(
         script_name, timeout=script_runner.timeout_for(action), args=script_args(action, target)
