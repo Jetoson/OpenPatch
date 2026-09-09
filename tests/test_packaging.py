@@ -353,6 +353,11 @@ def test_the_agent_requirements_exclude_the_server_stack():
         assert not any(line.startswith(server_only) for line in requirements), server_only
 
 
+def test_the_dev_requirements_include_httpx2_for_testclient():
+    requirements = requirement_lines("requirements-dev.txt")
+    assert any(line.startswith("httpx2") for line in requirements)
+
+
 class TestHelpNamesTheProgram:
 
     def test_the_server_names_itself_when_frozen(self, monkeypatch):
