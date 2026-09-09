@@ -1,6 +1,6 @@
 # OpenPatch server image: the API and the dashboard, from one build.
 
-FROM python:3.13-slim AS builder
+FROM python:3.14-slim AS builder
 
 ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PIP_NO_CACHE_DIR=1
@@ -14,7 +14,7 @@ RUN python -m venv /opt/venv \
     && /opt/venv/bin/pip install -r requirements-server.txt
 
 # runtime
-FROM python:3.13-slim AS runtime
+FROM python:3.14-slim AS runtime
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl openssl \
