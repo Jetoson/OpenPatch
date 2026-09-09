@@ -81,3 +81,5 @@ services:
       - --server.address=0.0.0.0
       - --server.headless=true
 volumes:
+  openpatch-data:
+  openpatch-tls:

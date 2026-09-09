@@ -214,6 +214,7 @@ def test_docker_compose_keeps_state_on_a_volume():
     compose = open(os.path.join(ROOT, "docker-compose.yml"), encoding="utf-8").read()
     assert "openpatch-data:/data" in compose
     assert "OPENPATCH_DATA_DIR: /data" in compose
+    assert "volumes:\n  openpatch-data:\n  openpatch-tls:" in compose
 
 
 class TestTlsSurvivesTheContainerBoundary:
