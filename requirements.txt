@@ -1,4 +1,3 @@
-pywin32
 # Everything, for a development checkout that runs both sides and the tests.
 -r requirements-server.txt
 -r requirements-agent.txt
