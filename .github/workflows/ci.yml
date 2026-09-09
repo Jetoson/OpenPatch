@@ -150,6 +150,7 @@ jobs:
             type=ref,event=pr
             type=semver,pattern={{version}}
             type=sha,format=long
+            type=raw,value=latest,enable={{is_default_branch}}
 
       # Built and loaded locally rather than pushed directly, for two
       # reasons: an image that is pushed straight from the builder is not in
