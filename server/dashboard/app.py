@@ -1037,7 +1037,7 @@ def select_fleet(group: str | None) -> None:
 def render_kpis(summary: dict) -> None:
     """The row of counts, four of which are buttons.
     """
-    cards = [
+       cards = [
         ("server", "Endpoints", summary["total_endpoints"], "accent", None, None),
         ("wifi", "Online", summary["online"], "success", None, "online"),
         (
@@ -1047,12 +1047,12 @@ def render_kpis(summary: dict) -> None:
         (
             "boxes", "Nearing or past EOL", summary["eol_endpoints"],
             "warning" if summary["eol_endpoints"] else "neutral",
-            "eol",
+            None, "eol",
         ),
         (
             "alert-triangle", "Past EOL", summary["critical_endpoints"],
             "danger" if summary["critical_endpoints"] else "neutral",
-            "critical",
+            None, "critical",
         ),
         (
             "clock", "Pending Tasks", summary["pending_tasks"],
