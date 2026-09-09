@@ -1,0 +1,10 @@
+# Server and dashboard runtime dependencies.
+fastapi==0.141.1
+uvicorn==0.52.1
+sqlalchemy==2.0.51
+alembic==1.19.0
+pydantic==2.13.4
+requests==2.33.1
+streamlit==1.61.1
+pandas==3.0.5
+python-dotenv==1.2.3

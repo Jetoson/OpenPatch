@@ -1,0 +1,4 @@
+# Test and build only dependencies.
+-r requirements.txt
+pytest==9.0.3
+pyinstaller==6.16.0

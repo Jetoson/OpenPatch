@@ -1,0 +1,25 @@
+# Line endings, declared rather than left to each developer's core.autocrlf.
+#
+# The repository is edited on Windows and half of it executes on Linux: the
+# container image, and every shell script in a GitHub Actions job. A CR at the
+# end of a bash line is a syntax error there, and one that only appears in CI,
+# so the checked-in form is normalised here instead of being a property of
+# whoever committed last.
+
+* text=auto eol=lf
+
+# Windows-only, and cmd.exe is entitled to expect CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PowerShell runs on Windows here, but the parser accepts either and keeping
+# it LF means a diff does not change when edited from a container.
+*.ps1 text eol=lf
+
+# Binary.
+*.png binary
+*.ico binary
+*.pdf binary
+*.exe binary
+*.db binary
+*.whl binary

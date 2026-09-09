@@ -1,0 +1,5 @@
+# Endpoint agent runtime dependencies.
+requests==2.33.1
+psutil==7.2.2
+python-dotenv==1.2.3
+pywin32==312; sys_platform == "win32"
