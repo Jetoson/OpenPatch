@@ -416,8 +416,7 @@ def render_overview_page(endpoints: list[dict]):
             )
         if df.empty:
             st.info(
-                "No endpoints are in that group right now. The count on the card "
-                "is recomputed on an interval, so it can be a minute ahead of this."
+                "No endpoints are in that group right now."
             )
             return
     df["status"] = df["online"].map({True: "\U0001F7E2 Online", False: "\U0001F534 Offline"})
@@ -551,7 +550,7 @@ def render_endpoint_detail_page(endpoints: list[dict]):
 
     if not device_id or device_id not in device_lookup:
         st.markdown(
-            '<div class="op-hint">Select an endpoint from the Overview page to view its telemetry, inventory, and actions.</div>',
+            '<div class="op-hint">Select an endpoint from the Overview page.</div>',
             unsafe_allow_html=True,
         )
         return
@@ -582,16 +581,14 @@ def render_endpoint_detail_page(endpoints: list[dict]):
                   on_click=queue_task, args=(device_id, "UPDATE_AND_VERIFY"))
         st.button("Update, Verify & Auto-Heal", width="stretch",
                   on_click=queue_task, args=(device_id, "UPDATE_VERIFY_HEAL"))
-        st.caption("Auto-heal reverts the machine to a pre-update restore point and reboots it if verification fails.")
+        st.caption("Auto-heal reverts the machine to a pre-update restore point.")
         st.button("Queue OS Updates", width="stretch",
                   on_click=queue_task, args=(device_id, "UPDATE_OS"))
 
         st.divider()
         st.markdown("**Post-patch verification**")
         st.caption(
-            "Runs right after Update & Verify, on this endpoint only. Exit "
-            "non-zero, or raise an error, and the workflow reports the patch "
-            "broke something - Auto-Heal then rolls it back automatically."
+            "Runs right after Update & Verify, on this endpoint only."
         )
 
         critical_programs = st.text_input(
@@ -604,20 +601,6 @@ def render_endpoint_detail_page(endpoints: list[dict]):
                 "names Task Manager shows, not the .exe path."
             ),
         )
-        # verify_command = st.text_area(
-        #     "Or a custom PowerShell command, for anything the list above can't express",
-        #     value=endpoint.get("verify_command") or "",
-        #     key=f"verify_command_{device_id}",
-        #     height=68,
-        #     placeholder="e.g. Get-Process AcmeApp -ErrorAction Stop",
-        #     help="Runs as SYSTEM. Set, it wins outright over the critical-programs list above.",
-        # )
-        # st.button(
-        #     "Save verification settings", width="stretch",
-        #     on_click=save_verification_settings, args=(device_id, verify_command, critical_programs),
-        # )
-        # if not verify_command and not critical_programs:
-        #     st.caption("Nothing configured - the workflow will simply pass.")
 
         st.divider()
         st.markdown("**Revert**")
@@ -634,8 +617,7 @@ def render_endpoint_detail_page(endpoints: list[dict]):
         st.button("Revert Last Update", width="stretch", disabled=not revert_ok,
                   on_click=revert_endpoint, args=(device_id, window))
         st.caption(
-            "Restores the checkpoint taken before the last patch. Fails safely if no "
-            "checkpoint from that window exists."
+            "Restores the checkpoint taken before the last patch."
         )
 
         st.divider()
@@ -677,7 +659,7 @@ def render_endpoint_detail_page(endpoints: list[dict]):
                 )
                 udf = udf[udf["source"].isin(chosen)]
 
-            st.caption("Check the rows you want, then install. Leave everything unchecked to patch all pending upgrades at once.")
+            st.caption("Check the rows you want, then install.")
 
             selection = st.dataframe(
                 udf[["source", "name", "kb", "current_version", "available_version", "severity"]],
@@ -720,8 +702,7 @@ def render_endpoint_detail_page(endpoints: list[dict]):
             if not windows_picked.empty:
                 st.warning(
                     f"{len(windows_picked)} selected item(s) are part of Windows Update and cannot be "
-                    "installed individually."
-                    "Use the Queue OS Update action instead.",
+                    "installed individually.",
                     icon="\U0001FA9F",
                 )
 
@@ -735,7 +716,7 @@ def render_endpoint_detail_page(endpoints: list[dict]):
     with sub_tasks:
         show_cancelled = st.toggle(
             "Show cancelled", value=False, key="device_show_cancelled",
-            help="Cancelled tasks stay in the history but are kept out of this list by default.",
+            help="Cancelled tasks stay in the history.",
         )
         tasks = fetch(f"/dashboard/endpoints/{device_id}/tasks",
                       params={"include_cancelled": show_cancelled}) or []
@@ -755,8 +736,7 @@ def render_endpoint_detail_page(endpoints: list[dict]):
                     )
                 with note_col:
                     st.caption(
-                        "Dequeues work this endpoint has not started. A task already running "
-                        "finishes and reports its result."
+                        "Dequeues work this endpoint has not started."
                     )
 
             st.dataframe(
@@ -771,8 +751,7 @@ def render_endpoint_detail_page(endpoints: list[dict]):
             st.info("No tasks queued for this endpoint yet.")
         else:
             st.info(
-                "No active tasks for this endpoint. Switch on Show cancelled if you "
-                "are looking for tasks that were dequeued."
+                "No active tasks for this endpoint."
             )
 
 
@@ -806,8 +785,7 @@ def render_scan_status() -> None:
 
     if not status.get("enabled"):
         st.warning(
-            "Automatic scanning is disabled on the server (OPENPATCH_SCAN_ENABLED=0). "
-            "The findings below are whatever was last scanned and nothing newer.",
+            "Automatic scanning is disabled on the server.",
             icon="⚠️",
         )
         return
@@ -823,8 +801,7 @@ def render_scan_status() -> None:
     else:
         st.info(
             f"No scan has completed yet. The server scans automatically every "
-            f"{interval // 60} minute(s) and the first run starts shortly after it "
-            "boots - the findings below will be empty until then.",
+            f"{interval // 60} minute(s).",
             icon="🕒",
         )
         return
@@ -837,7 +814,7 @@ def render_scan_status() -> None:
     if pending:
         parts.append(f"{pending} due for a re-check")
     if unidentified:
-        parts.append(f"{unidentified} name(s) with no NVD match, so not represented below")
+        parts.append(f"{unidentified} name(s) with no NVD match")
     if interval:
         parts.append(f"scans run automatically every {interval // 60} minute(s)")
 
@@ -876,8 +853,7 @@ def _render_ring_deployment(df):
 
     with st.container(border=True):
         st.caption(
-            "Staged rollout: patch the test ring, confirm nothing broke, then run the "
-            "same deployment against production."
+            "Staged rollout."
         )
         rings = fetch_rings()
         if not rings:
@@ -929,7 +905,7 @@ def render_vulnerabilities_page():
 
     findings = fetch("/dashboard/findings") or []
     if not findings:
-        st.info("No resolved software yet. Run an EOL scan from an endpoint to populate this view.")
+        st.info("No resolved software yet.")
         return
 
     grouped = pd.DataFrame(findings)
@@ -992,16 +968,13 @@ def render_vulnerabilities_page():
                     "top_cves": st.column_config.TextColumn("Worst CVEs"),
                     "confidence": st.column_config.TextColumn(
                         "Match",
-                        help="Version-matched applies to the installed version. Product-level means "
-                             "the CPE match never confirmed a version, so the CVE affects the product "
-                             "but not necessarily this build.",
+                        help="Version-matched applies to the installed version.",
                     ),
                 },
             )
         if (vulnerable["confidence"] == "Product-level").any():
             st.caption(
-                "Product-level rows list CVEs known for the product across all versions - treat them "
-                "as leads to confirm, not as proof this build is affected."
+                "Product-level rows list CVEs known for the product across all versions."
             )
 
     st.markdown(theme.section_title("clock", "End of support"), unsafe_allow_html=True)
@@ -1072,14 +1045,14 @@ def render_kpis(summary: dict) -> None:
             "danger" if summary["offline"] else "neutral", None, "offline",
         ),
         (
-            "boxes", "EOL Endpoints", summary["eol_endpoints"],
+            "boxes", "Nearing or past EOL", summary["eol_endpoints"],
             "warning" if summary["eol_endpoints"] else "neutral",
-            "nearing or past EOL", "eol",
+            "eol",
         ),
         (
-            "alert-triangle", "Critical Endpoints", summary["critical_endpoints"],
+            "alert-triangle", "Past EOL", summary["critical_endpoints"],
             "danger" if summary["critical_endpoints"] else "neutral",
-            "already past EOL", "critical",
+            "critical",
         ),
         (
             "clock", "Pending Tasks", summary["pending_tasks"],
@@ -1130,17 +1103,6 @@ def render_deploy_page():
     """Hand the operator the CA, and the exact commands for this server.
     """
     st.markdown(theme.section_title("shield", "Deploy agents"), unsafe_allow_html=True)
-
-    st.markdown(
-        theme.hint(
-            "One zip is the whole deployment: the agent, the authority it should "
-            "trust, and the commands that install it. An agent cannot learn which "
-            "authority to trust from the server it is authenticating - an impostor "
-            "would present its own - so the CA travels this way instead."
-        ),
-        unsafe_allow_html=True,
-    )
-    st.write("")
 
     agent = deploy.agent_path(paths.bundle_dir(), paths.source_root())
 
@@ -1210,12 +1172,6 @@ def render_deploy_page():
             f" · rebuild it and rebuild the image to ship a newer one."
         )
 
-    st.caption(
-        "Contains openpatch-agent.exe, ca.crt, an elevated installer and written "
-        "instructions. No secrets: the enrolment and task signing secrets never "
-        "reach this process, and the bundle says where to put them."
-    )
-
 
 def render_tasks_page(endpoints: list[dict]):
     st.markdown(theme.section_title("clock", "Task Queue"), unsafe_allow_html=True)
@@ -1276,10 +1232,7 @@ def render_tasks_page(endpoints: list[dict]):
     df = df[df["status"].isin(status_filter)].reset_index(drop=True)
 
     caption = (
-        f"{pending_total} task(s) still queued across the fleet. Tick rows to dequeue them - "
-        "only tasks that have not run yet can be cancelled, and a task an agent has already "
-        "started runs to completion."
-    )
+        f"{pending_total} task(s) still queued across the fleet."
     if hidden:
         caption += f" {hidden} cancelled task(s) hidden."
     st.caption(caption)
