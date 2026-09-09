@@ -1,0 +1,32 @@
+# The agent is just a windows program and won't never run in a container
+agent/
+tests/
+
+.git/
+.github/
+.venv/
+.idea/
+**/__pycache__/
+**/*.pyc
+
+# Local states & environment variables
+.env
+.env.*
+server/data/
+server/certs/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite3
+*.log
+
+# Build results
+dist/
+build/
+*.spec.bak
+
+# Python build/test output
+__pycache__/
+.pytest_cache/
+*.py[cod]
