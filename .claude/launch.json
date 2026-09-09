@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "openpatch-api",
+      "type": "python",
+      "request": "launch",
+      "program": "${workspaceFolder}/server/run.py",
+      "runtimeArgs": ["run.py", "serve"],
+      "cwd": "${workspaceFolder}/server"
+    }
+  ]
+}
