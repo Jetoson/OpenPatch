@@ -1233,6 +1233,7 @@ def render_tasks_page(endpoints: list[dict]):
 
     caption = (
         f"{pending_total} task(s) still queued across the fleet."
+    )
     if hidden:
         caption += f" {hidden} cancelled task(s) hidden."
     st.caption(caption)
