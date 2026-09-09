@@ -346,6 +346,13 @@ def test_the_agent_requirements_include_pywin32():
     assert any(line.startswith("pywin32") for line in requirements)
 
 
+def test_the_root_requirements_do_not_unconditionally_install_pywin32():
+    requirements = requirement_lines("requirements.txt")
+    assert not any(
+        line.startswith("pywin32") and "sys_platform" not in line for line in requirements
+    )
+
+
 def test_the_agent_requirements_exclude_the_server_stack():
     """Every megabyte here is copied to every endpoint."""
     requirements = requirement_lines("requirements-agent.txt")
