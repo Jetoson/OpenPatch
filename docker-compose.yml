@@ -7,7 +7,7 @@
 
 services:
   api:
-    image: ${OPENPATCH_IMAGE:-ghcr.io/Jetoson/OpenPatch/server:latest}
+    image: ${OPENPATCH_IMAGE:-ghcr.io/jetoson/openpatch/server:latest}
     restart: unless-stopped
     ports:
       - "${OPENPATCH_PORT:-8000}:8000"
@@ -48,7 +48,7 @@ services:
 
   dashboard:
     # The same image as the api service: one build carries both.
-    image: ${OPENPATCH_IMAGE:-ghcr.io/Jetoson/OpenPatch/server:latest}
+    image: ${OPENPATCH_IMAGE:-ghcr.io/jetoson/openpatch/server:latest}
     restart: unless-stopped
     depends_on:
       api:
@@ -81,5 +81,3 @@ services:
       - --server.address=0.0.0.0
       - --server.headless=true
 volumes:
-  openpatch-data:
-  openpatch-tls:

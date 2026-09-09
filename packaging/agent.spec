@@ -41,6 +41,7 @@ hiddenimports = [
     "win32api",
     "pythoncom",
     "pywintypes",
+    "psutil",
 ] + collect_submodules("encodings")
 
 a = Analysis(

@@ -8,8 +8,6 @@ __pycache__/
 
 # Environment / virtualenv
 .env
-.env.*
-!.env.example
 .venv/
 venv/
 
