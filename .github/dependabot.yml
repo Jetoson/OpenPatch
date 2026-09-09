@@ -1,0 +1,30 @@
+# Automated dependency updates.
+#
+
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # One pull request for the server stack.
+      server:
+        patterns: ["fastapi", "uvicorn", "sqlalchemy", "alembic", "pydantic", "streamlit", "pandas"]
+      agent:
+        patterns: ["pywin32", "psutil", "requests", "python-dotenv"]
+      tooling:
+        patterns: ["pytest*", "pyinstaller"]
+
+  - package-ecosystem: docker
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  # Actions are a supply chain too - this is the mechanism by which a pinned
+  # action gets a security update.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly

@@ -1,0 +1,85 @@
+# OpenPatch server.
+#
+#   docker compose pull
+#   docker compose up -d
+#   docker compose logs api          # prints credentials at the console
+#
+
+services:
+  api:
+    image: ${OPENPATCH_IMAGE:-ghcr.io/Jetoson/OpenPatch/server:latest}
+    restart: unless-stopped
+    ports:
+      - "${OPENPATCH_PORT:-8000}:8000"
+    environment:
+      OPENPATCH_DATA_DIR: /data
+      OPENPATCH_HOST: 0.0.0.0
+      OPENPATCH_PORT: 8000
+      OPENPATCH_ADMIN_API_KEY: ${OPENPATCH_ADMIN_API_KEY:-}
+      # The dashboard's login. Set it in .env (or the environment) to choose
+      # it.
+      OPENPATCH_DASHBOARD_USERNAME: ${OPENPATCH_DASHBOARD_USERNAME:-admin}
+      OPENPATCH_DASHBOARD_PASSWORD: ${OPENPATCH_DASHBOARD_PASSWORD:-}
+      OPENPATCH_ENROLLMENT_SECRET: ${OPENPATCH_ENROLLMENT_SECRET:-}
+      OPENPATCH_TASK_SIGNING_SECRET: ${OPENPATCH_TASK_SIGNING_SECRET:-}
+      OPENPATCH_NVD_API_KEY: ${OPENPATCH_NVD_API_KEY:-}
+      OPENPATCH_AGENT_POLL_INTERVAL: ${OPENPATCH_AGENT_POLL_INTERVAL:-30}
+      OPENPATCH_SCAN_INTERVAL: ${OPENPATCH_SCAN_INTERVAL:-3600}
+      # TLS. These are paths *inside the container*:
+      #   OPENPATCH_SSL_CERTFILE=/certs/server.crt
+      #   OPENPATCH_SSL_KEYFILE=/certs/server.key
+      # Empty by default, because a deployment behind a reverse proxy that
+      # terminates TLS itself must not be forced to hold a certificate.
+      OPENPATCH_SSL_CERTFILE: ${OPENPATCH_SSL_CERTFILE:-}
+      OPENPATCH_SSL_KEYFILE: ${OPENPATCH_SSL_KEYFILE:-}
+      # ...or set OPENPATCH_TLS_AUTO=1 instead and skip all of the above: the
+      # server issues its own certificate on first start, onto the volume, and
+      # the dashboard finds the CA there without being told. Endpoints get it
+      # from the dashboard's "Deploy agents" page.
+      OPENPATCH_TLS_AUTO: ${OPENPATCH_TLS_AUTO:-}
+      OPENPATCH_PUBLIC_HOST: ${OPENPATCH_PUBLIC_HOST:-}
+      # Self-issued material goes on a volume only this service mounts.
+      OPENPATCH_TLS_DIR: /tls
+    volumes:
+      - openpatch-data:/data
+      - openpatch-tls:/tls
+      # TLS material an operator generated themselves.
+      - ./server/certs:/certs:ro
+
+  dashboard:
+    # The same image as the api service: one build carries both.
+    image: ${OPENPATCH_IMAGE:-ghcr.io/Jetoson/OpenPatch/server:latest}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${OPENPATCH_DASHBOARD_PORT:-8501}:8501"
+    environment:
+      OPENPATCH_SERVER_URL: ${OPENPATCH_SERVER_URL:-https://api:8000}
+      OPENPATCH_CA_BUNDLE: ${OPENPATCH_CA_BUNDLE:-}
+      OPENPATCH_PUBLIC_HOST: ${OPENPATCH_PUBLIC_HOST:-}
+      OPENPATCH_PUBLIC_URL: ${OPENPATCH_PUBLIC_URL:-}
+      OPENPATCH_PORT: ${OPENPATCH_PORT:-8000}
+      OPENPATCH_DATA_DIR: /data
+      OPENPATCH_ADMIN_API_KEY: ${OPENPATCH_ADMIN_API_KEY:-}
+      OPENPATCH_DASHBOARD_USERNAME: ${OPENPATCH_DASHBOARD_USERNAME:-admin}
+      OPENPATCH_DASHBOARD_PASSWORD: ${OPENPATCH_DASHBOARD_PASSWORD:-}
+    volumes:
+      - openpatch-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8501/_stcore/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    entrypoint:
+      - streamlit
+      - run
+      - dashboard/app.py
+      - --server.port=8501
+      - --server.address=0.0.0.0
+      - --server.headless=true
+volumes:
+  openpatch-data:
+  openpatch-tls:

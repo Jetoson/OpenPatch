@@ -1,0 +1,18 @@
+# Build the image from this checkout instead of pulling the published one.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+#
+# For development, and for an operator that would rather build the server it runs
+# than trust a binary from a registry. Everything else comes from docker-compose.yml.
+#
+# This is a separate file rather than docker-compose.override.yml.
+
+services:
+  api:
+    build: .
+    # A local tag, so the built image cannot be mistaken for.
+    image: openpatch-server:dev
+
+  dashboard:
+    build: .
+    image: openpatch-server:dev

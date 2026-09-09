@@ -1,0 +1,226 @@
+# Build, test and package OpenPatch on every push.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch makes an in-flight run redundant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+# Least privilege by default.
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  test:
+    name: Tests (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            scope: ""
+          # The platform the container image runs on. The agent suite is
+          # excluded because its subject is Windows.
+          - name: linux
+            os: ubuntu-latest
+            scope: "tests/server tests/dashboard tests/test_packaging.py"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements*.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run tests
+        run: pytest ${{ matrix.scope }}
+
+      - name: Check migrations describe the models
+        if: matrix.name == 'linux'
+        run: pytest tests/server/test_migrations.py -v
+
+  executables:
+    name: Windows executables
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements*.txt
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Build both executables
+        run: python packaging/build.py
+
+      - name: Smoke test the agent
+        run: |
+          $help = .\dist\openpatch-agent.exe --help | Out-String
+          Write-Host $help
+          if ($help -notmatch 'openpatch-agent\.exe') {
+            throw "the packaged agent does not name itself in its own help"
+          }
+
+      - name: Smoke test the server
+        run: |
+          .\dist\openpatch-server.exe --help
+          # Migrations ship inside the executable; without them it cannot
+          # create its own schema, and that only shows up at first start.
+          $env:OPENPATCH_DATA_DIR = "$env:RUNNER_TEMP\opdata"
+          .\dist\openpatch-server.exe migrate
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openpatch-executables-${{ github.sha }}
+          path: dist/*.exe
+          retention-days: 30
+          if-no-files-found: error
+
+  image:
+    name: Container image
+    needs: [test, executables]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate the compose files
+        run: |
+          docker compose config --quiet
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml config --quiet
+
+      - name: Take the agent executable from the Windows build
+        uses: actions/download-artifact@v4
+        with:
+          name: openpatch-executables-${{ github.sha }}
+          path: ${{ runner.temp }}/executables
+
+      - name: Put it in the build context
+        run: cp "${{ runner.temp }}/executables/openpatch-agent.exe" packaging/agent-payload/
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Publishing is limited to the default branch and tags.
+      - name: Log in to the container registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Derive image tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/server
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,format=long
+
+      # Built and loaded locally rather than pushed directly, for two
+      # reasons: an image that is pushed straight from the builder is not in
+      # the local daemon, so the smoke test below would have nothing to run;
+      # and publishing after the test means a broken image is never given a
+      # tag anyone could pull.
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # -k, because the certificate is self-issued and this is checking that
+      # the server serves.
+      - name: Smoke test the image
+        run: |
+          IMAGE=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
+          docker run --rm -e OPENPATCH_DATA_DIR=/data -v openpatch-ci-data:/data "$IMAGE" migrate
+          docker run -d --name openpatch-ci -p 8000:8000 -v openpatch-ci-data:/data "$IMAGE"
+          for i in $(seq 1 30); do
+            if curl -fsSk https://127.0.0.1:8000/ >/dev/null 2>&1; then break; fi
+            sleep 2
+          done
+          curl -fsSk https://127.0.0.1:8000/ | grep -q "Server is running"
+          # It issued the CA the dashboard hands to endpoints, in the place
+          # the dashboard looks for it.
+          docker exec openpatch-ci test -f /data/certs/ca.crt
+          # And it carries the agent, so a bundle downloaded from the
+          # dashboard is a complete deployment with nothing added to it.
+          docker exec openpatch-ci test -s /app/agent-payload/openpatch-agent.exe
+          # The operator API must refuse an unauthenticated call. This is the
+          # one property whose regression would be invisible and serious.
+          test "$(curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1:8000/api/v1/dashboard/summary)" = "401"
+          docker rm -f openpatch-ci
+
+      - name: Push
+        if: github.event_name != 'pull_request'
+        run: |
+          echo "${{ steps.meta.outputs.tags }}" | while read -r tag; do
+            [ -n "$tag" ] || continue
+            docker push "$tag"
+          done
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [executables, image]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: openpatch-executables-${{ github.sha }}
+          path: dist
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --title "OpenPatch ${{ github.ref_name }}" \
+            --generate-notes \
+            --notes "Container image: \`ghcr.io/${{ github.repository }}/server:${{ github.ref_name }}\`" \
+            dist/openpatch-agent.exe \
+            dist/openpatch-server.exe
